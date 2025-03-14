@@ -31,6 +31,8 @@ function printBashUsage {
   echo "--port <port>             port for web server [default: 8989]"
   echo "--host <host>             host address of the web server [default: 0.0.0.0]"
   echo "-h | --help               display this message"
+  echo "-w | --write              allow/disallow writes to graph volume. Set to false if you have graph already 
+                                  loaded on a readonly volume. Defaults to true in GH if not set."
 }
 
 # one character parameters have one minus character'-'. longer parameters have two minus characters '--'
@@ -43,6 +45,7 @@ while [ ! -z $1 ]; do
     -o|--graph-cache) GRAPH="$2"; shift 2;;
     --port) GH_WEB_OPTS="$GH_WEB_OPTS -Ddw.server.application_connectors[0].port=$2"; shift 2;;
     --host) GH_WEB_OPTS="$GH_WEB_OPTS -Ddw.server.application_connectors[0].bind_host=$2"; shift 2;;
+    --w|--write) WRITE="$2"; shift 2;;
     -h|--help) printBashUsage
         exit 0;;
     -*) echo "Option unknown: $1"
@@ -58,6 +61,7 @@ done
 : "${CONFIG:=config-example.yml}"
 : "${JAVA_OPTS:=-Xmx1g -Xms1g}"
 : "${JAR:=$(find . -type f -name "*.jar")}"
+: "${WRITE:=true}
 
 if [ "$URL" != "" ]; then
   wget -S -nv -O "${FILE:=data.pbf}" "$URL"
@@ -68,5 +72,11 @@ mkdir -p $(dirname "${GRAPH}")
 
 echo "## Executing $ACTION. JAVA_OPTS=$JAVA_OPTS"
 
-exec "$JAVA" $JAVA_OPTS ${FILE:+-Ddw.graphhopper.datareader.file="$FILE"} -Ddw.graphhopper.graph.location="$GRAPH" \
-        $GH_WEB_OPTS -jar "$JAR" $ACTION $CONFIG
+
+cmd="$JAVA $JAVA_OPTS \
+${FILE:+-Ddw.graphhopper.datareader.file=$FILE} \
+${WRITE:+-Ddw.graphhopper.graph.allow_write=$WRITE} \
+-Ddw.graphhopper.graph.location=$GRAPH  \
+    $GH_WEB_OPTS -jar $JAR $ACTION $CONFIG"
+
+exec $cmd

@@ -73,10 +73,8 @@ mkdir -p $(dirname "${GRAPH}")
 echo "## Executing $ACTION. JAVA_OPTS=$JAVA_OPTS"
 
 
-cmd="$JAVA $JAVA_OPTS \
-${FILE:+-Ddw.graphhopper.datareader.file=$FILE} \
-${WRITE:+-Ddw.graphhopper.graph.allow_write=$WRITE} \
--Ddw.graphhopper.graph.location=$GRAPH  \
-    $GH_WEB_OPTS -jar $JAR $ACTION $CONFIG"
-
-exec $cmd
+exec "$JAVA" $JAVA_OPTS \
+  ${FILE:+-Ddw.graphhopper.datareader.file="$FILE"} \
+  ${WRITE:+-Ddw.graphhopper.graph.allow_write=$WRITE} \
+  -Ddw.graphhopper.graph.location="$GRAPH" \
+  $GH_WEB_OPTS -jar "$JAR" $ACTION $CONFIG
